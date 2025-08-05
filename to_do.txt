@@ -1,0 +1,3 @@
+bozze
+creo 2 nuovi file codabloccante.h e codaloccante.c
+creo la coda come una struttura dati contente  buffer circolare, capacity, size, indici head/tail, due liste di attesa (send_wait, recv_wait).

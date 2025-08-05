@@ -5,7 +5,6 @@
 #include "disastrOS_pcb.h"
 #include "disastrOS.h"
 #include "disastrOS_globals.h"
-#include "disastrOS_timer.h"
 
 #define PCB_SIZE sizeof(PCB)
 #define PCB_MEMSIZE (sizeof(PCB)+sizeof(int))
@@ -46,7 +45,6 @@ PCB* PCB_alloc() {
   pcb->pid=last_pid; last_pid++;
   pcb->return_value=0;
   pcb->status=Invalid;
-  pcb->last_fd=0;
   pcb->signals=0;
   pcb->signals_mask=0xFFFFFFFF;
   pcb->status=Invalid;
@@ -54,7 +52,10 @@ PCB* PCB_alloc() {
   pcb->parent=0;
   pcb->timer=0;
   List_init(&pcb->children);
-  return pcb;
+  //MemoryInfo_init(&pcb->memory);
+  //CPUState_init(&pcb->cpu);
+
+   return pcb;
 }
 
 int PCB_free(PCB* pcb){

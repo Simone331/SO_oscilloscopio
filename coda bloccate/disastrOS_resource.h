@@ -1,7 +1,7 @@
 #pragma once
 #include "linked_list.h"
 #include "disastrOS_pcb.h"
-
+#define DSOS_RESOURCE_MQUEUE  1 //Blocking message‐queue resource type
 
 typedef struct {
   ListItem list;
