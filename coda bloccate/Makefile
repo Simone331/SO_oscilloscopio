@@ -32,11 +32,12 @@ OBJS=pool_allocator.o\
      disastrOS_open_resource.o\
      disastrOS_close_resource.o\
      disastrOS_destroy_resource.o\
-     coda_bloccante.o
+     coda_bloccante.o\
+     test_mq_open.o
 
 LIBS=libdisastrOS.a
 
-BINS=disastrOS_test
+BINS=disastrOS_test test_mq_open
 
 #disastros_test
 
@@ -53,6 +54,9 @@ libdisastrOS.a: $(OBJS) $(HEADERS)
 	$(RM) $(OBJS)
 
 disastrOS_test:		disastrOS_test.c $(LIBS)
+	$(CC) $(CCOPTS) -o $@ $^
+
+test_mq_open: test_mq_open.c $(LIBS)
 	$(CC) $(CCOPTS) -o $@ $^
 
 clean:

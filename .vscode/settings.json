@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "disastros_syscalls.h": "c",
+        "disastros_descriptor.h": "c",
+        "disastros_resource.h": "c",
+        "disastros_timer.h": "c"
+    }
+}

@@ -29,6 +29,7 @@ Resource* Resource_alloc(int id, int type){
   r->id=id;
   r->type=type;
   List_init(&r->descriptors_ptrs);
+  r->resource = NULL;
   return r;
 }
 
@@ -52,6 +53,8 @@ Resource* ResourceList_byId(ResourceList* l, int id) {
 void Resource_print(Resource* r) {
   printf("id: %d, type:%d, pids:", r->id, r->type);
   DescriptorPtrList_print(&r->descriptors_ptrs);
+  if (r->resource)
+    printf(", data@%p", r->resource);
 }
 
 void ResourceList_print(ListHead* l){
