@@ -37,13 +37,19 @@ static PoolAllocator _mqdata_allocator;
  * Chiama questa funzione una sola volta all'avvio del kernel
  ************************************************************/
 void MessageQueue_initModule() {
-    /* Inizializza il PoolAllocator per le MessageQueue */
-    PoolAllocator_init(&_mq_allocator, MQ_SIZE, MAX_NUM_MESSAGEQUEUES, _mq_buffer, MQ_BUFFER_SIZE);
-    /* Inizializza il PoolAllocator per i buffer circolari */
-    PoolAllocator_init(&_mqdata_allocator, sizeof(void*), MAX_MSGS_PER_QUEUE, _mqdata_buffer, MQDATA_BUFFER_SIZE);
+    int res = PoolAllocator_init(&_mq_allocator,
+                                 MQ_SIZE,
+                                 MAX_NUM_MESSAGEQUEUES,
+                                 _mq_buffer,
+                                 MQ_BUFFER_SIZE);
+    assert(!res);
 
-    /* Inizializza la lista globale delle risorse */
-    List_init(&resources_list);
+    res = PoolAllocator_init(&_mqdata_allocator,
+                             MQDATA_SIZE,
+                             MAX_NUM_MESSAGEQUEUES,
+                             _mqdata_buffer,
+                             MQDATA_BUFFER_SIZE);
+    assert(!res);
 }
 
 /* macro di supporto per buffer circolare */
@@ -67,7 +73,7 @@ int disastrOS_mq_open(int key, int flags, int capacity) {
     else {
         /* Se non esiste, devo avere il flag CREATE per poterla fare */
         if (!(flags & DSOS_CREATE))
-            return DSOS_ERESOURCECREATE;
+            return DSOS_ERESOURCENOFD;
 
         /* 3) Alloco la Resource globale */
         res = Resource_alloc(key, DSOS_RESOURCE_MQUEUE);
@@ -325,3 +331,4 @@ int disastrOS_mq_unlink(int key) {
 
   return 0;
 }
+
