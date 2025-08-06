@@ -57,11 +57,5 @@ libdisastrOS.a: $(OBJS) $(HEADERS)
 disastrOS_test: disastrOS_test.c $(LIBS)
 	$(CC) $(CCOPTS) -o $@ $^
 
-test_mq_open: test_mq_open.c $(LIBS)
-	$(CC) $(CCOPTS) -o $@ $^
-
-test_mq_send: test_mq_send.c $(LIBS)
-	$(CC) $(CCOPTS) -o $@ $^
-
 clean:
 	rm -rf *.o *~ $(LIBS) $(BINS)
