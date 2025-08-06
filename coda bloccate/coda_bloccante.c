@@ -136,7 +136,43 @@ int disastrOS_mq_send(int fd, void* msg, int len) {
        3. Copiare il messaggio in buffer[tail], aggiornare tail/size
        4. Se esiste un processo in recv_wait, svegliarlo (disastrOS_wakeup)
     */
-    return -1; // stub
+     /* 1) Recupera il descriptor e la resource */
+  Descriptor* d = DescriptorList_byFd(&running->descriptors, fd);
+  if (!d) return DSOS_ERESOURCENOFD;
+  Resource* res = d->resource;
+  if (res->type != DSOS_RESOURCE_MQUEUE) return DSOS_ERESOURCENOFD;
+
+  /* 2) Ottieni la MessageQueue */
+  MessageQueue* mq = (MessageQueue*)res->resource;
+
+  /* 3) Se la coda è piena, blocca il processo */
+  if (mq->size == mq->capacity) {
+    /* metti il PCB in attesa sulla coda send_wait */
+    running->status = Waiting;
+    List_pushBack(&mq->send_wait, &running->list);
+    /* e contemporaneamente in waiting_list per il scheduler */
+    List_pushBack(&waiting_list, &running->list);
+    internal_schedule();  /* switch ad un altro processo */
+  }
+
+  /* 4) Inserisci il messaggio nel buffer circolare */
+  mq->buffer[mq->tail] = msg;
+  mq->tail = NEXT_IDX(mq->tail, mq->capacity);
+  mq->size++;
+
+  /* 5) Se ci sono receiver in attesa, svegliane uno */
+  if (mq->recv_wait.first) {
+    /* estrai il PCB dalla lista di recv_wait */
+    ListItem* it = List_popFront(&mq->recv_wait);
+    PCB* pcb = (PCB*)it;
+    /* rimuovilo anche dalla waiting_list globale */
+    List_detach(&waiting_list, &pcb->list);
+    /* segna pronto e mettilo in ready_list */
+    pcb->status = Ready;
+    List_pushBack(&ready_list, &pcb->list);
+  }
+
+  return 0;
 }
 
 /******************************

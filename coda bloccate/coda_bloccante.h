@@ -9,7 +9,7 @@
 
 /* Struttura per la coda circolare bloccante */
 typedef struct MessageQueue {
-    void*      buffer;      /* Puntatore al buffer circolare */
+    void**      buffer;      /* Puntatore al buffer circolare */
     int        capacity;    /* Capacità massima (# messaggi) */
     int        size;        /* Messaggi correnti nella coda */
     int        head;        /* Indice di lettura */
