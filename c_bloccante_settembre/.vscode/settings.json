@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "disastros_descriptor.h": "c",
+        "disastros_syscalls.h": "c"
+    }
+}
