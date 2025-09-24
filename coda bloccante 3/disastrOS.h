@@ -28,10 +28,6 @@ void disastrOS_preempt();
 void disastrOS_spawn(void (*f)(void*), void* args );
 void disastrOS_shutdown();
 
-//blocking queue
-int disastrOS_bqEnqueue(int fd, int value);
-int disastrOS_bqDequeue(int fd);
-
 // timers
 void disastrOS_sleep(int);
 

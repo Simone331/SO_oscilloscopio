@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
-#include <signal.h>
 #include "disastrOS.h"
 #include "disastrOS_syscalls.h"
 #include "disastrOS_timer.h"
@@ -42,42 +41,22 @@ sigset_t signal_set;                       // process wide signal mask
 char signal_stack[STACK_SIZE];     
 volatile int disastrOS_time=0;
 
-PCB* idle_pcb;
 
-
-void timerHandler(int, siginfo_t *, void *) {
-  if (!running) return;
+void timerHandler(int j, siginfo_t *si, void *old_context) {
   swapcontext(&running->cpu_state, &interrupt_context);
 }
 
 void timerInterrupt(){
   if (log_file)
-    fprintf(log_file,"TIME:%d\tPID:%d\tACTION:%s\n",
-            disastrOS_time, running->pid, "TIMER_OUT");
+    fprintf(log_file, "TIME: %d\tPID: %d\tACTION: %s\n", disastrOS_time, running->pid, "TIMER_OUT");
   ++disastrOS_time;
   printf("time: %d\n", disastrOS_time);
-
-  internal_schedule();                   // sceglie prossimo o Idle
-
+  internal_schedule();
   if (log_file)
-    fprintf(log_file,"TIME:%d\tPID:%d\tACTION:%s\n",
-            disastrOS_time, running->pid, "TIMER_IN");
-  setcontext(&running->cpu_state);       // SEMPRE un context valido
+    fprintf(log_file, "TIME: %d\tPID: %d\tACTION: %s\n", disastrOS_time, running->pid, "TIMER_IN");
+  setcontext(&running->cpu_state);
 }
 
-static void idleFunction(void* args) {
-  int last_print = -1000;
-  for (;;) {
-    // stampa lo stato ogni 20 tick (non troppo spam)
-    if (disastrOS_time - last_print >= 20) {
-      printf("\n-- IDLE T=%d: stato --\n", disastrOS_time);
-      disastrOS_printStatus();
-      last_print = disastrOS_time;
-    }
-    // cedi la CPU ad ogni tick
-    disastrOS_preempt();
-  }
-}
 
 //set up the signal action
 void setupSignals(void) {
@@ -150,11 +129,12 @@ void disastrOS_trap(){
 	    running->pid,
 	    "SYSCALL_OUT",
 	    syscall_num);
-  if (!running) {
-  // nessuno pronto? scegli l'Idle (mai NULL)
-  running = idle_pcb;
+  if (running)
+    setcontext(&running->cpu_state);
+  else {
+    printf("no active processes\n");
+    disastrOS_printStatus();
   }
-  setcontext(&running->cpu_state);
 }
 
 void disastrOS_start(void (*f)(void*), void* f_args, char* logfile){  
@@ -200,12 +180,6 @@ void disastrOS_start(void (*f)(void*), void* f_args, char* logfile){
   syscall_vector[DSOS_CALL_SHUTDOWN]      = internal_shutdown;
   syscall_numarg[DSOS_CALL_SHUTDOWN]      = 0;
 
-  syscall_vector[DSOS_CALL_BQ_ENQUEUE]      = internal_bqEnqueue;
-  syscall_numarg[DSOS_CALL_BQ_ENQUEUE]      = 2;
-
-  syscall_vector[DSOS_CALL_BQ_DEQUEUE]      = internal_bqDequeue;
-  syscall_numarg[DSOS_CALL_BQ_DEQUEUE]      = 1;
-
   // setup the scheduling lists
   running=0;
   List_init(&ready_list);
@@ -246,20 +220,6 @@ void disastrOS_start(void (*f)(void*), void* f_args, char* logfile){
   running->status=Running;
   init_pcb=running;
   
-  // --- crea il PCB idle ---
-idle_pcb = PCB_alloc();
-idle_pcb->status = Ready;
-idle_pcb->pid = -1;  // identificativo speciale per stampa
-
-getcontext(&idle_pcb->cpu_state);
-idle_pcb->cpu_state.uc_stack.ss_sp   = idle_pcb->stack;
-idle_pcb->cpu_state.uc_stack.ss_size = STACK_SIZE;
-idle_pcb->cpu_state.uc_stack.ss_flags= 0;
-idle_pcb->cpu_state.uc_link          = &main_context; // non verrà usato in pratica
-
-makecontext(&idle_pcb->cpu_state, (void(*)()) idleFunction, 1, 0);
-
-
   // create a trampoline for the first process (see spawn)
   disastrOS_debug("preparing trampoline for first process ... ");
   getcontext(&running->cpu_state);
@@ -327,14 +287,6 @@ int disastrOS_closeResource(int fd) {
 
 int disastrOS_destroyResource(int resource_id) {
   return disastrOS_syscall(DSOS_CALL_DESTROY_RESOURCE, resource_id);
-}
-
-int disastrOS_bqEnqueue(int fd, int value) {
-  return disastrOS_syscall(DSOS_CALL_BQ_ENQUEUE, fd, value);
-}
-
-int disastrOS_bqDequeue(int fd) {
-  return disastrOS_syscall(DSOS_CALL_BQ_DEQUEUE, fd);
 }
 
 

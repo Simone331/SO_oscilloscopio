@@ -5,7 +5,6 @@
 #include "disastrOS_syscalls.h"
 #include "disastrOS_resource.h"
 #include "disastrOS_descriptor.h"
-#include "disastrOS_bqueue.h"
 
 void internal_destroyResource(){
   int id=running->syscall_args[0];
@@ -25,11 +24,6 @@ void internal_destroyResource(){
 
   res=(Resource*) List_detach(&resources_list, (ListItem*) res);
   assert(res);
-  if (res->type==DSOS_RESOURCE_TYPE_BQUEUE && res->data) {
-    BQueue* q=(BQueue*) res->data;
-    BQueue_free(q);
-    res->data=0;
-  }
   Resource_free(res);
   running->syscall_retvalue=0;
 }

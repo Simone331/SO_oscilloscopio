@@ -10,7 +10,6 @@ HEADERS=disastrOS.h\
 	disastrOS_resource.h\
 	disastrOS_syscalls.h\
 	disastrOS_timer.h\
-     disastrOS_bqueue.h\
 	linked_list.h\
 	pool_allocator.h\
 
@@ -20,7 +19,6 @@ OBJS=pool_allocator.o\
      disastrOS_pcb.o\
      disastrOS_resource.o\
      disastrOS_descriptor.o\
-     disastrOS_bqueue.o\
      disastrOS.o\
      disastrOS_fork.o\
      disastrOS_wait.o\

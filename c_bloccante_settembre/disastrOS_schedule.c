@@ -1,27 +1,21 @@
-#include <assert.h>
-#include <unistd.h>
-#include <stdio.h>
+// disastrOS_schedule.c (o disastrOS.c se lo tieni lì)
 #include "disastrOS.h"
-#include "disastrOS_syscalls.h"
+#include "disastrOS_pcb.h"
+#include "linked_list.h"
+#include "disastrOS_globals.h"
 
-// replaces the running process with the next one in the ready list
+// disastrOS_schedule.c (o dentro disastrOS.c)
+extern PCB* idle_pcb;
+extern ListHead ready_list;
+
 void internal_schedule() {
-  if (running) {
-    disastrOS_debug("PREEMPT - %d ->", running->pid);
-   }
-  // at least one process should be in the ready queue
-  // if not, no preemption occurs
-  
-  if (ready_list.first){
-    PCB* next_process=(PCB*) List_detach(&ready_list, ready_list.first);
+  if (running && running->status==Running) {
     running->status=Ready;
     List_insert(&ready_list, ready_list.last, (ListItem*) running);
-    next_process->status=Running;
-    running=next_process;
   }
-  //disastrOS_printStatus();
- 
-  if (running) {
-    disastrOS_debug(" %d\n", running->pid);
-  }
+  PCB* next = ready_list.first
+              ? (PCB*) List_detach(&ready_list, ready_list.first)
+              : idle_pcb;
+  running = next;
+  running->status = Running;
 }

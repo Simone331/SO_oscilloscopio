@@ -13,12 +13,12 @@ void internal_wait();
 
 void internal_spawn();
 
-void internal_sleep();
-void internal_openResource();
-void internal_closeResource();
-void internal_destroyResource();
-void internal_bqEnqueue();
-void internal_bqDequeue();
 void internal_shutdown();
 
+void internal_openResource();
+
+void internal_closeResource();
+
+void internal_sleep();
+void internal_destroyResource();
 void internal_schedule();

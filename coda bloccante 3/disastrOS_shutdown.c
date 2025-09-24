@@ -6,6 +6,5 @@
 
 
 void internal_shutdown(){
-   shutdown_now=1;
-  setcontext(&main_context);
+  assert(0 && "shutdown not implemented"); 
 }
