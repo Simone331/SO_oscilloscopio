@@ -24,7 +24,7 @@
 #define CONC_CAP   1
 #define CONC_VAL   777
 
-#define USE_WAIT   0   // 0 = polling con disastrOS_sleep; 1 = usa disastrOS_wait
+#define USE_WAIT   1   // 0 = polling con disastrOS_sleep; 1 = usa disastrOS_wait
 
 /* ====================== Helpers log/test ====================== */
 
@@ -67,24 +67,31 @@ static inline void logp(const char* role){
 static volatile int done = 0;  // incrementata alla fine da producer/consumer
 
 void producer(void* arg){
-  long id = (long) arg;
-  disastrOS_sleep(1); // lascio bloccare il consumer prima
+  long id=(long)arg;
+  
+  printf("\n");
   logp("P"); printf("put %d on q=%ld ...\n", CONC_VAL, id);
-  int rc = disastrOS_bqPut((int)id, CONC_VAL);
-  logp("P"); printf("put rc=%d\n", rc);
-  ++done;
+  disastrOS_bqPut((int)id, CONC_VAL);
+  logp("P"); printf("after put dump\n");
+  disastrOS_bqDump((int)id);
+
   disastrOS_exit(1000);
 }
 
 void consumer(void* arg){
-  long id = (long) arg;
-  long v = -1;
+  long id=(long)arg;
+  long v=-1;
+  printf("\n");
+
   logp("C"); printf("get on q=%ld ...\n", id);
-  int rc = disastrOS_bqGet((int)id, &v);
-  logp("C"); printf("get rc=%d, v=%ld\n", rc, v);
-  ++done;
+  disastrOS_bqGet((int)id, &v);
+
+  logp("C"); printf("after get dump (v=%ld)\n", v);
+  disastrOS_bqDump((int)id);
+
   disastrOS_exit(2000 + (int)v);
 }
+
 
 /* ====================== Test 1: unitario ====================== */
 
@@ -121,40 +128,60 @@ static void test_unitario_bq(void){
   printf("--- FINE TEST UNITARIO: %d run, %d failed ---\n", tests_run, tests_failed);
 }
 
-/* ====================== Test 2: mini concorrente ====================== */
+/* ====================== Test 2: producer-consumer esteso ====================== */
 
 static void test_mini_concorrente(void){
-  printf("\n--- TEST MINI CONCORRENTE (1P+1C, cap=1) ---\n");
+  printf("\n--- TEST PROD-CONS ESTESO (più processi monoshot) ---\n");
 
-  // crea coda cap=1
-  int rc = disastrOS_bqCreate(CONC_QID, CONC_CAP);
-  assert_ok(rc, "bqCreate(CONC_QID, cap=1)");
+  // Usiamo la coda CONC_QID ma con capacità >1 per vedere buffering + handoff
+  const int QID          = CONC_QID;  // 20
+  const int CAP          = 3;         // più grande di 1 per mostrare buffer pieno/vuoto
+  const int NPROD_PROCS  = 10;         // numero di processi "producer" (ognuno fa 1 put)
+  const int NCONS_PROCS  = 8;         // numero di processi "consumer" (ognuno fa 1 get)
 
-  // spawna consumer poi producer (producer dorme 1 tick)
-  disastrOS_spawn(consumer, (void*) (long) CONC_QID);
-  disastrOS_spawn(producer, (void*) (long) CONC_QID);
+  int rc = disastrOS_bqCreate(QID, CAP);
+  assert_ok(rc, "bqCreate(CONC_QID, cap=3)");
+  if (rc<0) return; // se fallisce, non proseguire
+
+  // Pattern di spawn: metà consumer (per farli bloccare), poi tutti i producer, poi i consumer restanti
+  int halfC = NCONS_PROCS/2;
+
+  printf("[init] spawn %d consumer (fase 1)...\n", halfC);
+  for (int i=0; i<halfC; ++i)
+    disastrOS_spawn(consumer, (void*) (long) QID);
+
+  printf("[init] spawn %d producer...\n", NPROD_PROCS);
+  for (int i=0; i<NPROD_PROCS; ++i)
+    disastrOS_spawn(producer, (void*) (long) QID);
+
+  printf("[init] spawn %d consumer (fase 2)...\n", NCONS_PROCS - halfC);
+  for (int i=halfC; i<NCONS_PROCS; ++i)
+    disastrOS_spawn(consumer, (void*) (long) QID);
 
 #if USE_WAIT
-  // usa wait() se preferisci (richiede wait/exit corretti)
-  for (int k=0; k<2; ++k){
-    int ret=0, pid=disastrOS_wait(0, &ret);
-    printf("[init] child %d exited, retval=%d\n", pid, ret);
+  // aspetta la terminazione di TUTTI i figli di questo test
+  const int to_wait = NPROD_PROCS + NCONS_PROCS;
+  for (int k=0; k<to_wait; ++k){
+    int ret=0;
+    int pid = disastrOS_wait(0, &ret);
+    printf("[init] child %d exited, retval=%d (k=%d/%d)\n", pid, ret, k+1, to_wait);
   }
 #else
-  // polling semplice: attendo che producer e consumer incrementino "done"
-  while (done<2){
+  // Variante senza wait(): polling su 'done' (incrementato dai worker)
+  done = 0;
+  const int target_done = NPROD_PROCS + NCONS_PROCS;
+  while (done < target_done){
     disastrOS_sleep(1);
   }
 #endif
 
-  // cleanup
-  rc = disastrOS_bqDelete(CONC_QID);
+  // delete
+  rc = disastrOS_bqDelete(QID);
   assert_ok(rc, "bqDelete(CONC_QID)");
 
-  printf("--- FINE TEST MINI CONCORRENTE ---\n");
+  printf("--- FINE TEST PROD-CONS ESTESO ---\n");
 }
 
-/* ====================== init & main ====================== */
 
 void initFunction(void* args){
   printf("\n=== BQueue SMALL TESTS ===\n");

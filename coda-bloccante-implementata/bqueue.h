@@ -21,18 +21,14 @@ typedef struct BlockingQueue {
   ListHead wait_putters;  // List of PCBPtr waiting on put()
 } BlockingQueue;
 
-// Initialization of allocators and global queue registry
 void        BQ_init(void);
 
-// Allocate/free a queue instance
 BlockingQueue* BQ_alloc(int id, int capacity);
 int         BQ_free(BlockingQueue* q);
 
-// Allocate/free an item node
 BQItem*     BQItem_alloc(void);
 int         BQItem_free(BQItem* it);
 
-// Lookup by id inside a list (typically the global registry)
 BlockingQueue* BQ_byId(ListHead* head, int id);
 
 // Global registry accessor

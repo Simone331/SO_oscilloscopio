@@ -230,6 +230,9 @@ void disastrOS_start(void (*f)(void*), void* f_args, char* logfile){
   syscall_numarg[DSOS_CALL_BQ_PUT] = 2;
   syscall_vector[DSOS_CALL_BQ_GET] = internal_bq_get;
   syscall_numarg[DSOS_CALL_BQ_GET] = 2;
+  syscall_vector[DSOS_CALL_BQ_DUMP] = internal_bq_dump;
+  syscall_numarg[DSOS_CALL_BQ_DUMP] = 1;
+
 
   syscall_numarg[DSOS_CALL_SHUTDOWN]      = 0;
 

@@ -1,11 +1,9 @@
-
-// bqueue.c
 #include <assert.h>
 #include <stdio.h>
 #include "bqueue.h"
 #include "pool_allocator.h"
 
-// ---- configuration of slab allocators ----
+// configuration of slab allocators
 #define MAX_NUM_BQUEUES   128
 #define MAX_NUM_BQITEMS   4096
 

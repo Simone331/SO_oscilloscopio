@@ -34,8 +34,7 @@ void internal_bq_create(){
     // (the caller should call BQ_init at boot)
   }
   if (BQ_byId(BQ_registry(), id)){
-  // scegli un codice di errore negativo (riuso quello che già usi altrove)
-  running->syscall_retvalue = DSOS_ESYSCALL_ARGUMENT_OUT_OF_BOUNDS; // o definirne uno ad hoc (es. DSOS_EEXIST)
+  running->syscall_retvalue = DSOS_EEXIST; // queue with id already exists
   return;
   }
   
@@ -47,7 +46,7 @@ void internal_bq_create(){
   List_insert(BQ_registry(), BQ_registry()->last, (ListItem*) q);
   running->syscall_retvalue=0;
 }
-// Create (or replace) a blocking queue with id and capacity
+// Delete: args -> id
 void internal_bq_delete(){
   int id = (int) running->syscall_args[0];
 
@@ -74,7 +73,6 @@ void internal_bq_put(){
 
   BlockingQueue* q = BQ_byId(BQ_registry(), id);
   if (!q){
-    // if queue does not exist, lazily create with capacity 1 (or error)
     running->syscall_retvalue = DSOS_ERESOURCENOFD;
     return;
   }
@@ -182,6 +180,29 @@ void internal_bq_get(){
   }
 }
 
+// helper DUMP
+static int list_len(ListHead* h){
+  int n=0; for (ListItem* it=h->first; it; it=it->next) ++n; return n;
+}
+
+// Dump: args -> id
+void internal_bq_dump() {
+  int id = (int) running->syscall_args[0];
+
+  BlockingQueue* q = BQ_byId(BQ_registry(), id);
+  if (!q) { running->syscall_retvalue = DSOS_ERESOURCENOFD; return; }
+
+  printf("BQ[%d] size=%d/%d items=[", q->id, q->size, q->capacity);
+  for (ListItem* it=q->items.first; it; it=it->next) {
+    BQItem* bi = (BQItem*) it;
+    printf("%ld%s", bi->value, it->next ? ", " : "");
+  }
+  printf("] wait_putters=%d wait_getters=%d\n",
+         list_len(&q->wait_putters), list_len(&q->wait_getters));
+
+  running->syscall_retvalue = 0;
+}
+
 // user-facing wrappers
 int disastrOS_bqCreate(int id, int capacity){
   return disastrOS_syscall(DSOS_CALL_BQ_CREATE, id, capacity);
@@ -196,3 +217,7 @@ int disastrOS_bqGet(int id, long* out){
 int disastrOS_bqDelete(int id){
   return disastrOS_syscall(DSOS_CALL_BQ_DELETE, id);
 }
+int disastrOS_bqDump(int id){
+  return disastrOS_syscall(DSOS_CALL_BQ_DUMP, id);
+}
+

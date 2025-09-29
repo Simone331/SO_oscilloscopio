@@ -43,6 +43,8 @@ int disastrOS_bqCreate(int id, int capacity);
 int disastrOS_bqDelete(int id);
 int disastrOS_bqPut(int id, long value);
 int disastrOS_bqGet(int id, long* out);
+int disastrOS_bqDump(int id);
+
 
 // debug function, prints the state of the internal system
 void disastrOS_printStatus();

@@ -27,3 +27,4 @@ void internal_bq_create();
 void internal_bq_delete();
 void internal_bq_put();
 void internal_bq_get();
+void internal_bq_dump();
